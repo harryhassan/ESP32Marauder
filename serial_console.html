@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harry >_ Serial Console</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #00ff88;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.05) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px);
+  }
+
+  .wrapper {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  header {
+    text-align: center;
+    padding: 18px 0 12px;
+    letter-spacing: 2px;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    color: #00ff88;
+    text-shadow: 0 0 12px rgba(0,255,136,0.5);
+    display: inline;
+  }
+
+  header h1 span.cursor-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  header h1 .title-label {
+    font-family: 'Orbitron', monospace;
+    text-decoration: underline;
+    text-underline-offset: 6px;
+    color: #00ff88;
+  }
+
+  .terminal-frame {
+    border: 2px solid #00ff88;
+    box-shadow: 0 0 18px rgba(0,255,136,0.25), inset 0 0 40px rgba(0,0,0,0.6);
+    border-radius: 4px;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    margin: 8px 0 0;
+  }
+
+  .terminal-frame::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,255,136,0.02) 3px,
+      rgba(0,255,136,0.02) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #output {
+    height: 380px;
+    overflow-y: auto;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #00ff88;
+    white-space: pre-wrap;
+    word-break: break-word;
+    scroll-behavior: smooth;
+    position: relative;
+    z-index: 2;
+  }
+
+  #output::-webkit-scrollbar { width: 6px; }
+  #output::-webkit-scrollbar-track { background: #000; }
+  #output::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 3px; }
+
+  .line-in  { color: #00ff88; }
+  .line-out { color: #aaffcc; }
+  .line-err { color: #ff4444; }
+  .line-sys { color: #888; font-style: italic; }
+  .prompt   { color: #00ff88; }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 0;
+    flex-wrap: wrap;
+  }
+
+  #cmd-input {
+    flex: 1;
+    background: #060610;
+    border: 1.5px solid #00ff88;
+    color: #00ff88;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    outline: none;
+    caret-color: #00ff88;
+    min-width: 0;
+    transition: box-shadow 0.2s;
+  }
+
+  #cmd-input::placeholder { color: #2a7a55; }
+
+  #cmd-input:focus {
+    box-shadow: 0 0 10px rgba(0,255,136,0.3);
+  }
+
+  .baud-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #00ff88;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  #baud-rate {
+    background: #060610;
+    border: 1.5px solid #00ff88;
+    color: #00ff88;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 3px;
+    width: 96px;
+    outline: none;
+  }
+
+  #baud-rate:focus { box-shadow: 0 0 8px rgba(0,255,136,0.3); }
+
+  .btn {
+    background: transparent;
+    border: 1.5px solid #00ff88;
+    color: #00ff88;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    padding: 9px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: background 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover {
+    background: rgba(0,255,136,0.1);
+    box-shadow: 0 0 10px rgba(0,255,136,0.3);
+  }
+
+  .btn:active { background: rgba(0,255,136,0.2); }
+
+  .btn.connected {
+    border-color: #ff4444;
+    color: #ff4444;
+  }
+
+  .btn.connected:hover {
+    background: rgba(255,68,68,0.1);
+    box-shadow: 0 0 10px rgba(255,68,68,0.3);
+  }
+
+  .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 0;
+    font-size: 11px;
+    color: #2a7a55;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #2a7a55;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+
+  .status-dot.active {
+    background: #00ff88;
+    box-shadow: 0 0 6px #00ff88;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 4px #00ff88; }
+    50% { box-shadow: 0 0 10px #00ff88; }
+  }
+
+  .status-text { color: #2a7a55; transition: color 0.3s; }
+  .status-text.active { color: #00ff88; }
+
+  footer {
+    text-align: center;
+    padding: 14px 0 6px;
+    font-size: 11px;
+    color: #1e5c3a;
+    letter-spacing: 1.5px;
+  }
+
+  footer span {
+    color: #2a7a55;
+  }
+
+  .rx-indicator, .tx-indicator {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-left: 4px;
+    background: #1e5c3a;
+    transition: background 0.1s;
+    vertical-align: middle;
+  }
+
+  .rx-indicator.flash { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+  .tx-indicator.flash { background: #ffaa00; box-shadow: 0 0 5px #ffaa00; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>Harry <span class="cursor-blink">&gt;_</span>&nbsp; <span class="title-label">Serial Console</span></h1>
+  </header>
+
+  <div class="terminal-frame">
+    <div id="output"></div>
+  </div>
+
+  <div class="controls">
+    <div class="baud-wrap">
+      <span>Baud Rate:</span>
+      <input type="text" id="baud-rate" value="115200" />
+    </div>
+    <button class="btn" id="btn-connect" onclick="toggleConnect()">Connect</button>
+    <input type="text" id="cmd-input" placeholder="Type your command here..." onkeydown="handleKey(event)" />
+    <button class="btn" id="btn-send" onclick="sendCommand()" disabled>Send</button>
+    <button class="btn" onclick="clearOutput()">Clear</button>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span class="status-text" id="status-text">Disconnected &nbsp;|&nbsp; WebSerial API</span>
+    <span style="margin-left:auto;">
+      RX<span class="rx-indicator" id="rx-led"></span>
+      &nbsp;TX<span class="tx-indicator" id="tx-led"></span>
+    </span>
+  </div>
+
+  <footer>Powered by <span>Hassan Ali</span></footer>
+</div>
+
+<script>
+  let port = null;
+  let reader = null;
+  let writer = null;
+  let connected = false;
+  let readLoop = null;
+  let inputBuffer = '';
+
+  const output = document.getElementById('output');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const btnConnect = document.getElementById('btn-connect');
+  const btnSend = document.getElementById('btn-send');
+  const rxLed = document.getElementById('rx-led');
+  const txLed = document.getElementById('tx-led');
+
+  function appendLine(text, cls) {
+    const span = document.createElement('span');
+    span.className = cls || 'line-out';
+    span.textContent = text + '\n';
+    output.appendChild(span);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function flashLed(el) {
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 120);
+  }
+
+  function setStatus(conn, text) {
+    if (conn) {
+      statusDot.classList.add('active');
+      statusText.classList.add('active');
+      btnConnect.classList.add('connected');
+      btnConnect.textContent = 'Disconnect';
+      btnSend.disabled = false;
+    } else {
+      statusDot.classList.remove('active');
+      statusText.classList.remove('active');
+      btnConnect.classList.remove('connected');
+      btnConnect.textContent = 'Connect';
+      btnSend.disabled = true;
+    }
+    statusText.textContent = text;
+  }
+
+  async function toggleConnect() {
+    if (connected) {
+      await disconnect();
+    } else {
+      await connect();
+    }
+  }
+
+  async function connect() {
+    if (!('serial' in navigator)) {
+      appendLine('[ERROR] Web Serial API not supported. Use Chrome or Edge.', 'line-err');
+      return;
+    }
+    try {
+      port = await navigator.serial.requestPort();
+      const baud = parseInt(document.getElementById('baud-rate').value) || 115200;
+      await port.open({ baudRate: baud });
+      connected = true;
+      setStatus(true, `Connected @ ${baud} baud`);
+      appendLine(`[INFO] Port opened at ${baud} baud`, 'line-sys');
+      startReading();
+    } catch (err) {
+      if (err.name !== 'NotFoundError') {
+        appendLine('[ERROR] ' + err.message, 'line-err');
+      }
+    }
+  }
+
+  async function disconnect() {
+    connected = false;
+    try {
+      if (reader) { await reader.cancel(); reader = null; }
+      if (writer) { writer.releaseLock(); writer = null; }
+      if (port) { await port.close(); port = null; }
+    } catch(e) {}
+    setStatus(false, 'Disconnected');
+    appendLine('[INFO] Port closed.', 'line-sys');
+  }
+
+  async function startReading() {
+    const decoder = new TextDecoder();
+    while (port && port.readable && connected) {
+      try {
+        reader = port.readable.getReader();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) { reader.releaseLock(); break; }
+          const text = decoder.decode(value);
+          inputBuffer += text;
+          const lines = inputBuffer.split('\n');
+          inputBuffer = lines.pop();
+          lines.forEach(line => {
+            if (line.trim()) {
+              appendLine(line.trimEnd(), 'line-out');
+              flashLed(rxLed);
+            }
+          });
+        }
+      } catch (err) {
+        if (connected) appendLine('[ERROR] Read error: ' + err.message, 'line-err');
+        break;
+      }
+    }
+  }
+
+  async function sendCommand() {
+    const input = document.getElementById('cmd-input');
+    const cmd = input.value.trim();
+    if (!cmd || !connected || !port) return;
+    try {
+      const encoder = new TextEncoder();
+      writer = port.writable.getWriter();
+      await writer.write(encoder.encode(cmd + '\r\n'));
+      writer.releaseLock();
+      writer = null;
+      appendLine('> ' + cmd, 'line-in');
+      flashLed(txLed);
+      input.value = '';
+    } catch (err) {
+      appendLine('[ERROR] Send failed: ' + err.message, 'line-err');
+    }
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter') sendCommand();
+  }
+
+  function clearOutput() {
+    output.innerHTML = '';
+  }
+
+  appendLine('Harry >_ Serial Console  [Web Serial API]', 'line-sys');
+  appendLine('Click Connect to select a serial port.', 'line-sys');
+  appendLine('Supported baud rates: 9600, 115200, etc.', 'line-sys');
+  appendLine('', 'line-sys');
+</script>
+</body>
+</html>
